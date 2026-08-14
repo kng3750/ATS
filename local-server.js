@@ -14,7 +14,7 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 function getGeminiApiKey() {
   const key = process.env.GEMINI_API_KEY;
