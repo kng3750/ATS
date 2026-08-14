@@ -1,0 +1,13 @@
+{
+  "name": "career-ai-pro",
+  "version": "1.0.0",
+  "description": "참여자 적합성 분석 및 맞춤형 취업 지원 서류 생성 시스템",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}

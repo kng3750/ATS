@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 맞춤형 취업 지원 & 이력서/자소서 분석 시스템</title>
+  <meta name="description" content="참여자 적합성 분석 및 맞춤형 취업 지원 서류(이력서/ATS 자기소개서) 생성 AI 웹 애플리케이션">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-icon">
+          <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <div class="logo-text">
+          <h1>CareerAI <span>Pro</span></h1>
+          <p>참여자 적합성 분석 & 맞춤형 취업 지원 서류 생성 시스템</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="api-status-badge" id="apiStatusBadge">
+          <span class="status-dot warning"></span>
+          <span class="status-text" id="apiStatusText">API 키 확인 중...</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btnSettingsModal" title="API 설정">
+          <i class="fa-solid fa-gear"></i> 설정
+        </button>
+      </div>
+    </header>
+
+    <!-- File Protocol Warning Banner (Shown when index.html is opened directly via file://) -->
+    <div class="file-warning-banner" id="fileProtocolBanner" style="display: none;">
+      <div class="banner-content">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span><strong>직접 열림 감지:</strong> <code>index.html</code> 파일이 웹 서버 없이 직접 열렸습니다 (<code>file://</code> 프로토콜). 브라우저 보안 제약으로 환경변수 조회가 차단될 수 있으므로, <strong>npm start</strong> 구동 후 <a href="http://localhost:3001" target="_blank" class="banner-link">http://localhost:3001</a> 로 접속해 주세요.</span>
+      </div>
+      <button class="btn-banner-close" onclick="document.getElementById('fileProtocolBanner').style.display='none'" title="닫기">&times;</button>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="tabs-nav">
+      <button class="tab-btn active" data-tab="tab-fit">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>① 공고 적합성 분석</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-questions">
+        <i class="fa-solid fa-list-check"></i>
+        <span>② 성과 수치 발굴 질문</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-strategy">
+        <i class="fa-solid fa-chess-knight"></i>
+        <span>③ 분석 및 지원 전략</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-resume-draft">
+        <i class="fa-solid fa-file-pen"></i>
+        <span>④ 자소서 항목별 초안</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-ats-resume">
+        <i class="fa-solid fa-id-card"></i>
+        <span>⑤ 경력보유자 이력서</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-gap-story">
+        <i class="fa-solid fa-feather-pointed"></i>
+        <span>⑥ 경력공백 극복 스토리</span>
+      </button>
+    </nav>
+
+    <!-- Content Workspace Area -->
+    <main class="main-content">
+      
+      <!-- ================= TAB 1: 채용공고 적합성 분석 ================= -->
+      <section class="tab-panel active" id="tab-fit">
+        <div class="grid-2col">
+          <div class="card input-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-user-check"></i> 참여자 정보 & 채용공고 입력</h2>
+              <div class="preset-buttons">
+                <button class="btn-preset" onclick="loadPreset('fit', 1)"><i class="fa-solid fa-magic"></i> 예시 A (39세/총무)</button>
+                <button class="btn-preset" onclick="loadPreset('fit', 2)"><i class="fa-solid fa-magic"></i> 예시 B (48세/유통)</button>
+              </div>
+            </div>
+            <form id="form-fit" onsubmit="handleFormSubmit(event, 'fit')">
+              <div class="form-group">
+                <label for="fit-participant">참여자 인적사항 및 경력 요약</label>
+                <textarea id="fit-participant" rows="4" placeholder="예: 39세 여성, 경영지원/총무 7년 경력, 컴활 1급, 육아로 인한 3년 공백기 보유"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="fit-job">채용공고 요약 정보</label>
+                <textarea id="fit-job" rows="5" placeholder="예: [ABC솔루션] 경영지원팀 대리~과장급 모집
+- 담당업무: 사내 자산관리, 총무, 전산 서포트, 문서 작성
+- 자격요건: 관련 경력 3년 이상, MS Office 우수자
+- 우대사항: 전산회계 자격증 소지자, 문서 관리 능통자"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 적합성 심층 분석 실행
+              </button>
+            </form>
+          </div>
+
+          <div class="card result-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-square-poll-vertical"></i> 분석 결과 리포트</h2>
+              <button class="btn btn-copy" onclick="copyResult('result-fit')"><i class="fa-regular fa-copy"></i> 복사하기</button>
+            </div>
+            <div class="result-body" id="result-fit">
+              <div class="empty-state">
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                <p>좌측 입력 폼 작성 후 [적합성 심층 분석 실행] 버튼을 클릭하세요.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: 성과 수치 발굴 질문 생성 ================= -->
+      <section class="tab-panel" id="tab-questions">
+        <div class="grid-2col">
+          <div class="card input-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-calculator"></i> 직무 경력 입력</h2>
+              <div class="preset-buttons">
+                <button class="btn-preset" onclick="loadPreset('questions', 1)"><i class="fa-solid fa-magic"></i> 예시 A (영업/총무)</button>
+                <button class="btn-preset" onclick="loadPreset('questions', 2)"><i class="fa-solid fa-magic"></i> 예시 B (마트 CS)</button>
+              </div>
+            </div>
+            <form id="form-questions" onsubmit="handleFormSubmit(event, 'questions')">
+              <div class="form-group">
+                <label for="questions-experience">참여자의 상세 직무 경력 및 수행 업무</label>
+                <textarea id="questions-experience" rows="9" placeholder="예: 대형마트 계산원 및 고객만족팀 10년 근무. 
+- 일평균 500명 이상 고객 결제 및 정산 처리
+- 동료 직원 교육 및 신입 멘토링
+- 고객 불만 사항 1차 응대 및 처리"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 성과 수치 발굴 질문 10개 생성
+              </button>
+            </form>
+          </div>
+
+          <div class="card result-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-clipboard-question"></i> 성과 구체화 질문 리스트</h2>
+              <button class="btn btn-copy" onclick="copyResult('result-questions')"><i class="fa-regular fa-copy"></i> 복사하기</button>
+            </div>
+            <div class="result-body" id="result-questions">
+              <div class="empty-state">
+                <i class="fa-solid fa-circle-question"></i>
+                <p>참여자의 경력을 입력하면 성과를 수치화할 수 있는 인터뷰 질문 10개가 생성됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: 채용공고 분석 및 지원 전략 수립 ================= -->
+      <section class="tab-panel" id="tab-strategy">
+        <div class="grid-2col">
+          <div class="card input-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-chess"></i> 공고 내용 & 내담자 현황</h2>
+              <div class="preset-buttons">
+                <button class="btn-preset" onclick="loadPreset('strategy', 1)"><i class="fa-solid fa-magic"></i> 예시 A (39세/총무)</button>
+                <button class="btn-preset" onclick="loadPreset('strategy', 2)"><i class="fa-solid fa-magic"></i> 예시 B (48세/유통)</button>
+              </div>
+            </div>
+            <form id="form-strategy" onsubmit="handleFormSubmit(event, 'strategy')">
+              <div class="form-group">
+                <label for="strategy-job">채용공고 핵심 내용 (직무, 기업 규모, 우대사항 등)</label>
+                <textarea id="strategy-job" rows="4" placeholder="예: 중견 IT기업 경영지원팀. 직무: 총무 및 자산관리. 우대사항: ERP 사용자, 전산회계 자격증, 커뮤니케이션 원활자"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="strategy-seeker">내담자 현황 (나이, 경력, 공백기, 자격증 등)</label>
+                <textarea id="strategy-seeker" rows="5" placeholder="예: 39세, 여성, 총무 경력 7년, 육아 공백기 3년, 컴퓨터활용능력 1급 보유, 엑셀 활용 우수"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 종합 부합도 & 맞춤 전략 수립
+              </button>
+            </form>
+          </div>
+
+          <div class="card result-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-bullseye"></i> 부합도 분석 & 지원 전략 리포트</h2>
+              <button class="btn btn-copy" onclick="copyResult('result-strategy')"><i class="fa-regular fa-copy"></i> 복사하기</button>
+            </div>
+            <div class="result-body" id="result-strategy">
+              <div class="empty-state">
+                <i class="fa-solid fa-chart-line"></i>
+                <p>항목별 부합도(O/△/X), 강점 3가지, 약점 보완전략, 이력서 키워드, 면접 질문 및 답변 방향이 출력됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: 자기소개서 항목별 초안 생성 ================= -->
+      <section class="tab-panel" id="tab-resume-draft">
+        <div class="grid-2col">
+          <div class="card input-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-pen-nib"></i> 지원자 세부 정보</h2>
+              <div class="preset-buttons">
+                <button class="btn-preset" onclick="loadPreset('draft', 1)"><i class="fa-solid fa-magic"></i> 예시 A (39세/총무)</button>
+                <button class="btn-preset" onclick="loadPreset('draft', 2)"><i class="fa-solid fa-magic"></i> 예시 B (48세/유통)</button>
+              </div>
+            </div>
+            <form id="form-draft" onsubmit="handleFormSubmit(event, 'draft')">
+              <div class="form-group">
+                <label for="draft-info">참여자 기본 정보 & 지원 직무</label>
+                <input type="text" id="draft-info" placeholder="예: 39세 여성, 지원 직무: 총무 및 경영지원">
+              </div>
+              <div class="form-group">
+                <label for="draft-experience">경력 및 주요 경험 (공백기 포함)</label>
+                <textarea id="draft-experience" rows="3" placeholder="예: 중소기업 총무팀 7년 근무, 자산관리 및 비품 관리. 육아로 인한 3년 공백기 동안 지역 공동체 재무 담당 재능기부"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="draft-strengths">핵심 강점 & 특별 경험</label>
+                <textarea id="draft-strengths" rows="3" placeholder="예: 꼼꼼한 문서 정리, 엑셀 마스터, 부서간 원활한 소통, 성실함"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 4개 항목 자소서 초안 생성 (각 200~300자)
+              </button>
+            </form>
+          </div>
+
+          <div class="card result-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-file-lines"></i> 자기소개서 초안</h2>
+              <button class="btn btn-copy" onclick="copyResult('result-draft')"><i class="fa-regular fa-copy"></i> 복사하기</button>
+            </div>
+            <div class="result-body" id="result-draft">
+              <div class="empty-state">
+                <i class="fa-solid fa-file-word"></i>
+                <p>공백기를 성장의 언어로 서술하고 수치를 포함한 4개 항목의 자기소개서 초안이 작성됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: 경력보유자(경력단절자 등) 맞춤 이력서 초안 ================= -->
+      <section class="tab-panel" id="tab-ats-resume">
+        <div class="grid-2col">
+          <div class="card input-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-address-book"></i> 이력서 작성용 상세 정보</h2>
+              <div class="preset-buttons">
+                <button class="btn-preset" onclick="loadPreset('ats', 1)"><i class="fa-solid fa-magic"></i> 예시 A (39세/총무)</button>
+                <button class="btn-preset" onclick="loadPreset('ats', 2)"><i class="fa-solid fa-magic"></i> 예시 B (48세/유통)</button>
+              </div>
+            </div>
+            <form id="form-ats" onsubmit="handleFormSubmit(event, 'ats')">
+              <div class="form-group">
+                <label for="ats-basic">이름 / 나이 / 성별 / 학력</label>
+                <input type="text" id="ats-basic" placeholder="예: 김민지 / 39세 / 여성 / 대학교 졸업(경영학전공)">
+              </div>
+              <div class="form-group">
+                <label for="ats-history">상세 경력사항 (주요 업무 및 성과)</label>
+                <textarea id="ats-history" rows="3" placeholder="예: (주)한국상사 총무팀 대리 (2014.03 ~ 2021.02) - 사내 비품 및 자산 관리, 월간 경비 정산, 임직원 복리후생 지원"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="ats-gap">공백기 사유 및 관련 활동</label>
+                <textarea id="ats-gap" rows="2" placeholder="예: 육아 및 자녀 양육 (2021.03 ~ 2024.02), 공백기 중 컴활 1급 취득 및 전산회계 공부"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="ats-certs">보유 자격증 & 보유 기술</label>
+                <input type="text" id="ats-certs" placeholder="예: 컴퓨터활용능력 1급, 전산회계 1급, 운전면허 1종보통">
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> ATS 최적화 이력서 초안 생성
+              </button>
+            </form>
+          </div>
+
+          <div class="card result-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-file-contract"></i> ATS 맞춤 이력서 초안</h2>
+              <button class="btn btn-copy" onclick="copyResult('result-ats')"><i class="fa-regular fa-copy"></i> 복사하기</button>
+            </div>
+            <div class="result-body" id="result-ats">
+              <div class="empty-state">
+                <i class="fa-solid fa-id-card-clip"></i>
+                <p>ATS 키워드 반영, 경력 공백 재구성 및 성과 중심 이력서 초안이 생성됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 6: 자기소개서 – 경력공백 극복 스토리 ================= -->
+      <section class="tab-panel" id="tab-gap-story">
+        <div class="grid-2col">
+          <div class="card input-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-heart-pulse"></i> 스토리텔링 기초 정보</h2>
+              <div class="preset-buttons">
+                <button class="btn-preset" onclick="loadPreset('gap', 1)"><i class="fa-solid fa-magic"></i> 예시 A (39세/총무)</button>
+                <button class="btn-preset" onclick="loadPreset('gap', 2)"><i class="fa-solid fa-magic"></i> 예시 B (48세/유통)</button>
+              </div>
+            </div>
+            <form id="form-gap" onsubmit="handleFormSubmit(event, 'gap')">
+              <div class="form-group">
+                <label for="gap-info">지원자 기본 정보 및 지원 직무</label>
+                <input type="text" id="gap-info" placeholder="예: 48세 여성, 지원 직무: 대형마트 CS 서비스 매니저">
+              </div>
+              <div class="form-group">
+                <label for="gap-experience">기존 경력 내용</label>
+                <textarea id="gap-experience" rows="3" placeholder="예: 유통업체 계산원 10년 근무. 정확한 정산 및 친절한 고객 응대로 우수 사원 표창"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="gap-reason">공백기 사유 및 공백 기간 중 유의미한 활동</label>
+                <textarea id="gap-reason" rows="3" placeholder="예: 가정사 및 재충전 2년 공백. 공백기 동안 주민센터 봉사활동 및 소비자 상담 관련 온라인 교육 이수"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 공백 극복 스토리 자소서 4항목 생성
+              </button>
+            </form>
+          </div>
+
+          <div class="card result-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-book-open-reader"></i> 4개 항목 스토리텔링 자소서</h2>
+              <button class="btn btn-copy" onclick="copyResult('result-gap')"><i class="fa-regular fa-copy"></i> 복사하기</button>
+            </div>
+            <div class="result-body" id="result-gap">
+              <div class="empty-state">
+                <i class="fa-solid fa-award"></i>
+                <p>성장 과정, 직무 경험, 지원 동기, 입사 후 포부 4개 항목이 사과 없는 전문적 언어로 작성됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>© 2026 CareerAI Pro System. Powered by Gemini API & AI Prompts.</p>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-key"></i> Gemini API 키 설정</h3>
+        <button class="btn-close" id="btnCloseModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          서버 환경변수에 설정된 Gemini API 연결 상태를 확인합니다. API 키는 브라우저로 전송되지 않습니다.
+        </p>
+        <div class="api-env-info" id="envKeyStatus">
+          <i class="fa-solid fa-info-circle"></i> 환경변수 감지 상태 확인 중...
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnTestKey"><i class="fa-solid fa-rotate-right"></i> 환경변수 재감지</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Environment API Key Script (For direct file:// opening) -->
+  <!-- Main JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
